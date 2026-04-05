@@ -33,6 +33,19 @@
       max-width: 780px;
     }
 
+    /* ===== 天龙人花色显示 ===== */
+    #dragon-info {
+      background: rgba(241,196,15,0.15);
+      border: 1px solid #f1c40f;
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-size: 0.9rem;
+      text-align: center;
+      color: #f1c40f;
+      width: 100%;
+      max-width: 780px;
+    }
+
     /* ===== 玩家区域 ===== */
     .player-zone {
       background: rgba(0,0,0,0.3);
@@ -118,7 +131,7 @@
     .card .suit { font-size: 1.1rem; align-self: center; }
     .card .bottom { align-self: flex-end; line-height: 1; transform: rotate(180deg); }
 
-    /* 可点击（手牌） */
+    /* 可点击（手牌 / 明牌） */
     .card.selectable {
       cursor: pointer;
       border-color: #f1c40f;
@@ -214,6 +227,9 @@
 <body>
   <h1>🃏 扑克牌对战</h1>
 
+  <!-- 天龙人花色信息 -->
+  <div id="dragon-info"></div>
+
   <!-- 玩家2区域（AI） -->
   <div class="player-zone" id="zone-p2">
     <h2>玩家2（AI） <span id="badge-p2" class="badge" style="display:none">先手</span></h2>
@@ -254,7 +270,7 @@
     <h2>玩家1（你） <span id="badge-p1" class="badge" style="display:none">先手</span></h2>
     <div class="row-label">桌面底牌</div>
     <div class="card-row" id="down-p1"></div>
-    <div class="row-label">桌面明牌</div>
+    <div class="row-label">桌面明牌（点击选择）</div>
     <div class="card-row" id="face-p1"></div>
     <div class="row-label">手牌（点击选择）</div>
     <div class="card-row" id="hand-p1"></div>
@@ -262,29 +278,47 @@
   </div>
 
   <script>
+    /*
+     * ===================================================================
+     *  扑克牌对战游戏 —— 完整 27 轮版本
+     *
+     *  点数顺序（从高到低）：大王 > 小王 > A > K > Q > J > 10 > 9 > 8 > 7 > 6 > 5 > 4 > 3 > 2
+     *  平局处理：因为规则中"先手花色 > 后手花色"，双方花色不同时先手必赢；
+     *           同花色同点数不可能出现（牌唯一），所以实际不会出现平局。
+     *           代码中仍保留平局逻辑作为容错：平局时先手权不变，分数不归任何一方。
+     * ===================================================================
+     */
+
     // =====================================================================
-    // 常量 & 工具
+    // 常量
     // =====================================================================
 
-    const SUITS     = ['♠','♥','♦','♣'];
-    const SUIT_COLOR = { '♠':'black','♣':'black','♥':'red','♦':'red' };
-    // 牌点顺序（从小到大），3最小，2最大，大王 > 小王 > 2
-    const RANK_ORDER = ['3','4','5','6','7','8','9','10','J','Q','K','A','2','小王','大王'];
+    const SUITS      = ['♠','♥','♦','♣'];
+    const SUIT_COLOR = { '♠':'black', '♣':'black', '♥':'red', '♦':'red' };
+    const TOTAL_ROUNDS = 27;
+
+    /**
+     * 点数排序（索引越大越大）
+     * 2 最小，大王 最大
+     */
+    const RANK_ORDER = [
+      '2','3','4','5','6','7','8','9','10',
+      'J','Q','K','A','小王','大王'
+    ];
 
     // =====================================================================
-    // 1. createDeck —— 创建 54 张牌的牌组
+    // 1. createDeck —— 创建 54 张牌
     // =====================================================================
     function createDeck() {
       const deck = [];
       for (const suit of SUITS) {
-        for (const rank of ['3','4','5','6','7','8','9','10','J','Q','K','A','2']) {
+        for (const rank of ['2','3','4','5','6','7','8','9','10','J','Q','K','A']) {
           deck.push({ suit, rank, color: SUIT_COLOR[suit] });
         }
       }
-      // 小王、大王
       deck.push({ suit: '', rank: '小王', color: 'joker-small' });
       deck.push({ suit: '', rank: '大王', color: 'joker-big'   });
-      return deck; // 52 + 2 = 54 张
+      return deck; // 52 + 2 = 54
     }
 
     // =====================================================================
@@ -300,42 +334,209 @@
     }
 
     // =====================================================================
-    // 3. dealCards —— 发牌：每人 10底 + 10明 + 7手（共 27 张）
-    // 两位玩家合计 2×27 = 54 张，恰好用完整副牌
+    // 3. dealCards —— 轮流一人一张发牌
+    //    顺序：10 张暗牌 → 10 张明牌 → 7 张手牌（每阶段先 p1 再 p2 交替）
+    //    每人 27 张，共 54 张
+    //    返回 { p1, p2 }，每人包含 table[10]（含 down/face）和 hand[7]
     // =====================================================================
     function dealCards(deck) {
       const d = shuffleDeck(deck);
-      // 每位玩家：index 0-9 底牌，10-19 明牌，20-26 手牌（共 27 张）
-      // 两位玩家共 54 张，恰好用完整副牌
-      return {
-        p1: {
-          down: d.slice(0,  10),       // 底牌（牌面朝下）
-          face: d.slice(10, 20),       // 明牌（覆盖在底牌上，朝上）
-          hand: d.slice(20, 27),       // 手牌
-        },
-        p2: {
-          down: d.slice(27, 37),
-          face: d.slice(37, 47),
-          hand: d.slice(47, 54),
-        }
-      };
+      const p1 = { table: [], hand: [] };
+      const p2 = { table: [], hand: [] };
+
+      // 初始化 10 个桌面位置
+      for (let i = 0; i < 10; i++) {
+        p1.table.push({ down: null, face: null });
+        p2.table.push({ down: null, face: null });
+      }
+
+      let ci = 0; // 当前牌索引
+
+      // 阶段一：发 10 张暗牌（p1, p2 交替各 10 张，共 20 张）
+      for (let i = 0; i < 10; i++) {
+        p1.table[i].down = d[ci++];
+        p2.table[i].down = d[ci++];
+      }
+
+      // 阶段二：发 10 张明牌，覆盖在暗牌之上（交替各 10 张，共 20 张）
+      for (let i = 0; i < 10; i++) {
+        p1.table[i].face = d[ci++];
+        p2.table[i].face = d[ci++];
+      }
+
+      // 阶段三：发 7 张手牌（交替各 7 张，共 14 张）
+      for (let i = 0; i < 7; i++) {
+        p1.hand.push(d[ci++]);
+        p2.hand.push(d[ci++]);
+      }
+
+      return { p1, p2 };
     }
 
     // =====================================================================
-    // 4. compareCards —— 比较两张牌的大小
-    // 返回值：1 = cardA 赢，-1 = cardB 赢，0 = 平局
-    //
-    // 平局规则（注释说明）：
-    //   当两张牌点数完全相同时（同花色不可能，但同点数可能），
-    //   判定为平局（tie）。平局时当前回合先手权不变，
-    //   即下一回合仍由本回合的先手方先出牌。
+    // 4. determineDragonSuit —— 确定天龙人花色
+    //    规则：先手玩家的第 1 张明牌决定天龙人花色；
+    //    如果该牌是鬼牌，则按顺序检查：
+    //      先手第 1 张明牌 → 后手第 1 张明牌 → 先手第 2 张明牌
+    //    取第一个非鬼牌的花色。
     // =====================================================================
-    function compareCards(cardA, cardB) {
-      const idxA = RANK_ORDER.indexOf(cardA.rank);
-      const idxB = RANK_ORDER.indexOf(cardB.rank);
-      if (idxA > idxB) return  1;   // A 赢
-      if (idxA < idxB) return -1;   // B 赢
-      return 0;                      // 平局
+    function determineDragonSuit() {
+      const fp = state.firstPlayer === 1 ? state.p1 : state.p2;
+      const sp = state.firstPlayer === 1 ? state.p2 : state.p1;
+
+      const candidates = [
+        fp.table[0].face,
+        sp.table[0].face,
+        fp.table[1].face,
+      ];
+
+      for (const card of candidates) {
+        if (card && !isJoker(card)) {
+          return card.suit;
+        }
+      }
+
+      // 回退（极端情况：三张候选全为鬼牌，但牌组只有 2 张鬼，不会发生）
+      for (let i = 2; i < 10; i++) {
+        if (fp.table[i].face && !isJoker(fp.table[i].face)) {
+          return fp.table[i].face.suit;
+        }
+      }
+      return '♠';
+    }
+
+    // =====================================================================
+    // 5. isJoker —— 判断是否为鬼牌
+    // =====================================================================
+    function isJoker(card) {
+      return card.rank === '大王' || card.rank === '小王';
+    }
+
+    // =====================================================================
+    // 6. isPrivileged —— 判断牌是否属于特权阶级花色
+    //    特权阶级 = 天龙人花色 + 大小鬼（共 15 张）
+    // =====================================================================
+    function isPrivileged(card) {
+      if (isJoker(card)) return true;
+      return card.suit === state.dragonSuit;
+    }
+
+    // =====================================================================
+    // 7. getAvailableCards —— 获取玩家所有可出的牌
+    //    返回数组 [{ type: 'hand'|'face', index, card }, ...]
+    // =====================================================================
+    function getAvailableCards(player) {
+      const cards = [];
+      player.hand.forEach((card, i) => {
+        cards.push({ type: 'hand', index: i, card });
+      });
+      player.table.forEach((slot, i) => {
+        if (slot.face) {
+          cards.push({ type: 'face', index: i, card: slot.face });
+        }
+      });
+      return cards;
+    }
+
+    // =====================================================================
+    // 8. getPlayableCards —— 获取满足跟花色规则的可出牌
+    //    后手若有与先手相同花色的牌，必须出同花色；否则任意出。
+    //    先手没有限制（leadCard 为 null）。
+    //    鬼牌没有花色，不被视为任何花色的跟牌。
+    // =====================================================================
+    function getPlayableCards(player, leadCard) {
+      const available = getAvailableCards(player);
+      if (!leadCard || !leadCard.suit) return available; // 先手或鬼牌领出
+
+      const sameSuit = available.filter(a => a.card.suit === leadCard.suit);
+      return sameSuit.length > 0 ? sameSuit : available;
+    }
+
+    // =====================================================================
+    // 9. compareRank —— 仅比较点数大小
+    //    返回 1 = a 大，-1 = b 大，0 = 相同
+    // =====================================================================
+    function compareRank(a, b) {
+      const idxA = RANK_ORDER.indexOf(a.rank);
+      const idxB = RANK_ORDER.indexOf(b.rank);
+      if (idxA > idxB) return  1;
+      if (idxA < idxB) return -1;
+      return 0;
+    }
+
+    // =====================================================================
+    // 10. compareCards —— 比较两张牌的大小（完整规则）
+    //     firstCard = 本轮先手出的牌，secondCard = 后手出的牌
+    //     返回 1 = 先手赢，-1 = 后手赢，0 = 平局
+    //
+    //     规则：
+    //       ① 特权阶级花色 > 非特权花色
+    //       ② 双方都非特权 → 先手花色 > 后手花色（即先手赢）
+    //       ③ 同为特权 / 同花色 → 比点数
+    // =====================================================================
+    function compareCards(firstCard, secondCard) {
+      const fPriv = isPrivileged(firstCard);
+      const sPriv = isPrivileged(secondCard);
+
+      // 一方特权，一方非特权
+      if (fPriv && !sPriv) return  1;
+      if (!fPriv && sPriv) return -1;
+
+      // 双方都是特权花色（同为天龙人花色或鬼牌） → 比点数
+      if (fPriv && sPriv) return compareRank(firstCard, secondCard);
+
+      // 双方都不是特权花色
+      if (firstCard.suit === secondCard.suit) {
+        // 同花色 → 比点数
+        return compareRank(firstCard, secondCard);
+      }
+
+      // 不同花色且都非特权 → 先手赢
+      return 1;
+    }
+
+    // =====================================================================
+    // 11. getCardScore —— 获取牌的分值
+    //     5 = 5 分，10 = 10 分，K = 10 分，其余 0 分
+    // =====================================================================
+    function getCardScore(card) {
+      if (card.rank === '5')  return 5;
+      if (card.rank === '10') return 10;
+      if (card.rank === 'K')  return 10;
+      return 0;
+    }
+
+    // =====================================================================
+    // 12. aiChooseCard —— AI 选牌（简单策略：出最小点数的可出牌）
+    //     leadCard 为 null 表示 AI 是先手；否则需跟花色
+    //     返回 { type, index, card }
+    // =====================================================================
+    function aiChooseCard(player, leadCard) {
+      const playable = getPlayableCards(player, leadCard);
+      if (playable.length === 0) return null;
+
+      let best = 0;
+      let bestRank = RANK_ORDER.indexOf(playable[0].card.rank);
+      for (let i = 1; i < playable.length; i++) {
+        const r = RANK_ORDER.indexOf(playable[i].card.rank);
+        if (r < bestRank) { bestRank = r; best = i; }
+      }
+      return playable[best];
+    }
+
+    // =====================================================================
+    // 13. removeCardFromPlayer —— 从玩家手中移除已出的牌
+    //     source = { type: 'hand'|'face', index }
+    //     如果是明牌，记录需要翻转的桌面位置索引
+    // =====================================================================
+    function removeCardFromPlayer(player, source) {
+      if (source.type === 'hand') {
+        return player.hand.splice(source.index, 1)[0];
+      } else {
+        const card = player.table[source.index].face;
+        player.table[source.index].face = null;
+        return card;
+      }
     }
 
     // =====================================================================
@@ -343,96 +544,175 @@
     // =====================================================================
     let state = {};
 
+    // =====================================================================
+    // 14. initState —— 初始化游戏状态
+    // =====================================================================
     function initState() {
       const dealt = dealCards(createDeck());
       state = {
-        p1: { ...dealt.p1 },
-        p2: { ...dealt.p2 },
-        firstPlayer: 1,       // 本回合先手（1 或 2）
-        phase: 'select',      // 'select' | 'reveal' | 'gameover'
-        selectedCard: null,   // 玩家1已选中的手牌索引
-        playedP1: null,       // 本回合玩家1出的牌
-        playedP2: null,       // 本回合玩家2出的牌
-        roundResult: null,    // 'p1' | 'p2' | 'tie'
+        p1: dealt.p1,
+        p2: dealt.p2,
+        firstPlayer: 1,          // 本轮先手（1 或 2）
+        phase: 'select',         // 'select' | 'reveal' | 'gameover'
+        selectedSource: null,    // 玩家1选中的牌来源 { type, index }
+        playedP1: null,          // 本轮玩家1出的牌
+        playedP2: null,          // 本轮玩家2出的牌
+        roundResult: null,       // 'p1' | 'p2' | 'tie'
         round: 1,
+        scoreP1: 0,
+        scoreP2: 0,
+        dragonSuit: null,        // 天龙人花色
+        roundScore: 0,           // 本轮总分值
+        p1PlayedFaceIdx: null,   // 玩家1本轮打出的明牌桌位索引
+        p2PlayedFaceIdx: null,   // 玩家2本轮打出的明牌桌位索引
       };
+
+      // 确定天龙人花色
+      state.dragonSuit = determineDragonSuit();
     }
 
     // =====================================================================
-    // 5. aiChooseCard —— AI 选牌策略（简单：出最小的手牌）
+    // 15. aiPlayFirst —— AI 作为先手出牌（在玩家选牌之前执行）
     // =====================================================================
-    function aiChooseCard(hand) {
-      if (hand.length === 0) return null;
-      let minIdx = 0;
-      let minRank = RANK_ORDER.indexOf(hand[0].rank);
-      for (let i = 1; i < hand.length; i++) {
-        const r = RANK_ORDER.indexOf(hand[i].rank);
-        if (r < minRank) { minRank = r; minIdx = i; }
+    function aiPlayFirst() {
+      const aiResult = aiChooseCard(state.p2, null);
+      if (!aiResult) return;
+
+      state.playedP2 = aiResult.card;
+
+      if (aiResult.type === 'hand') {
+        state.p2.hand.splice(aiResult.index, 1);
+      } else {
+        state.p2.table[aiResult.index].face = null;
+        state.p2PlayedFaceIdx = aiResult.index;
       }
-      return minIdx;
     }
 
     // =====================================================================
-    // 6. playTurn —— 执行一回合
+    // 16. playTurn —— 执行一回合（玩家点击"出牌"后调用）
     // =====================================================================
     function playTurn() {
       if (state.phase !== 'select') return;
-      if (state.selectedCard === null) {
-        setStatus('请先选择一张手牌！');
+      if (!state.selectedSource) {
+        setStatus('请先选择一张牌！');
         return;
       }
 
-      // 玩家1出牌
-      const p1CardIdx = state.selectedCard;
-      const p1Card = state.p1.hand.splice(p1CardIdx, 1)[0];
+      const isP1First = (state.firstPlayer === 1);
+
+      // —— 玩家1出牌 ——
+      const src = state.selectedSource;
+      const p1Card = removeCardFromPlayer(state.p1, src);
       state.playedP1 = p1Card;
+      if (src.type === 'face') {
+        state.p1PlayedFaceIdx = src.index;
+      }
 
-      // 玩家2 AI 出牌
-      const p2CardIdx = aiChooseCard(state.p2.hand);
-      const p2Card = state.p2.hand.splice(p2CardIdx, 1)[0];
-      state.playedP2 = p2Card;
+      // —— AI 作为后手出牌（仅当玩家1为先手时） ——
+      if (isP1First) {
+        const aiResult = aiChooseCard(state.p2, p1Card);
+        if (aiResult) {
+          state.playedP2 = aiResult.card;
+          if (aiResult.type === 'hand') {
+            state.p2.hand.splice(aiResult.index, 1);
+          } else {
+            state.p2.table[aiResult.index].face = null;
+            state.p2PlayedFaceIdx = aiResult.index;
+          }
+        }
+      }
+      // 如果 AI 是先手，playedP2 已在 aiPlayFirst() 中设置
 
-      // 比较
-      const cmp = compareCards(p1Card, p2Card);
+      // —— 比较大小 ——
+      const firstCard  = isP1First ? state.playedP1 : state.playedP2;
+      const secondCard = isP1First ? state.playedP2 : state.playedP1;
+      const cmp = compareCards(firstCard, secondCard);
+
+      let roundWinner; // 1 = p1 赢, 2 = p2 赢, 0 = 平局
       if (cmp > 0) {
-        state.roundResult = 'p1';
-        state.firstPlayer = 1;
+        roundWinner = state.firstPlayer;
       } else if (cmp < 0) {
-        state.roundResult = 'p2';
-        state.firstPlayer = 2;
+        roundWinner = state.firstPlayer === 1 ? 2 : 1;
       } else {
-        // 平局：先手权不变（见 compareCards 注释）
+        roundWinner = 0;
+      }
+
+      // —— 计分 ——
+      const roundScore = getCardScore(state.playedP1) + getCardScore(state.playedP2);
+      state.roundScore = roundScore;
+
+      if (roundWinner === 1) {
+        state.scoreP1 += roundScore;
+        state.roundResult = 'p1';
+      } else if (roundWinner === 2) {
+        state.scoreP2 += roundScore;
+        state.roundResult = 'p2';
+      } else {
         state.roundResult = 'tie';
       }
 
-      state.selectedCard = null;
+      // —— 更新先手 ——
+      if (roundWinner !== 0) {
+        state.firstPlayer = roundWinner;
+      }
+
+      state.selectedSource = null;
       state.phase = 'reveal';
+      render();
+    }
+
+    // =====================================================================
+    // 17. nextRound —— 进入下一回合
+    //     翻转已打出明牌位置的暗牌、检查游戏结束
+    // =====================================================================
+    function nextRound() {
+      if (state.phase !== 'reveal') return;
+
+      // 翻转暗牌：明牌打出的位置，暗牌升为新明牌
+      if (state.p1PlayedFaceIdx !== null) {
+        const idx = state.p1PlayedFaceIdx;
+        state.p1.table[idx].face = state.p1.table[idx].down;
+        state.p1.table[idx].down = null;
+        state.p1PlayedFaceIdx = null;
+      }
+      if (state.p2PlayedFaceIdx !== null) {
+        const idx = state.p2PlayedFaceIdx;
+        state.p2.table[idx].face = state.p2.table[idx].down;
+        state.p2.table[idx].down = null;
+        state.p2PlayedFaceIdx = null;
+      }
+
+      // 清空出牌区
+      state.playedP1 = null;
+      state.playedP2 = null;
+      state.roundResult = null;
+      state.roundScore = 0;
+
+      // 检查是否 27 轮结束
+      if (state.round >= TOTAL_ROUNDS) {
+        state.phase = 'gameover';
+        render();
+        return;
+      }
+
+      // 进入下一轮
       state.round++;
+      state.selectedSource = null;
+      state.phase = 'select';
+
+      // 如果 AI 是先手，AI 先出牌
+      if (state.firstPlayer === 2) {
+        aiPlayFirst();
+      }
 
       render();
     }
 
     // =====================================================================
-    // 7. checkGameOver —— 检查游戏是否结束
-    // 当某位玩家手牌、明牌、底牌全部出完时游戏结束
-    // =====================================================================
-    function checkGameOver() {
-      const p1Empty = state.p1.hand.length === 0 &&
-                      state.p1.face.length === 0 &&
-                      state.p1.down.length === 0;
-      const p2Empty = state.p2.hand.length === 0 &&
-                      state.p2.face.length === 0 &&
-                      state.p2.down.length === 0;
-      if (p1Empty && p2Empty) return 'draw';
-      if (p1Empty) return 'p1';
-      if (p2Empty) return 'p2';
-      return null;
-    }
-
-    // =====================================================================
-    // 8. render —— 渲染整个界面
+    // 18. render —— 渲染整个界面
     // =====================================================================
     function render() {
+      renderDragonInfo();
       renderPlayerZone('p1');
       renderPlayerZone('p2');
       renderPlayArea();
@@ -440,55 +720,113 @@
       renderButtons();
     }
 
+    // ------ 渲染天龙人花色信息 ------
+    function renderDragonInfo() {
+      const el = document.getElementById('dragon-info');
+      if (state.dragonSuit) {
+        const suitName = { '♠':'黑桃','♥':'红心','♦':'方块','♣':'梅花' };
+        el.textContent = `🐉 天龙人花色：${state.dragonSuit} ${suitName[state.dragonSuit] || ''}（${state.dragonSuit} + 大小鬼 = 15 张特权阶级）`;
+      } else {
+        el.textContent = '';
+      }
+    }
+
     // ------ 渲染玩家区域 ------
     function renderPlayerZone(pid) {
       const p = state[pid];
 
-      // 底牌（朝下）
+      // 计算玩家1在选牌阶段的可出牌集合
+      let playableSet = null;
+      if (pid === 'p1' && state.phase === 'select') {
+        const leadCard = (state.firstPlayer === 2) ? state.playedP2 : null;
+        const playable = getPlayableCards(p, leadCard);
+        playableSet = new Set(playable.map(pc => `${pc.type}-${pc.index}`));
+      }
+
+      // ---- 底牌（朝下） ----
       const downEl = document.getElementById(`down-${pid}`);
       downEl.innerHTML = '';
       for (let i = 0; i < 10; i++) {
-        if (i < p.down.length) {
-          downEl.appendChild(makeCardEl(p.down[i], { faceDown: true }));
+        if (p.table[i].down) {
+          downEl.appendChild(makeCardEl(p.table[i].down, { faceDown: true }));
         } else {
           downEl.appendChild(makeEmptyEl());
         }
       }
 
-      // 明牌（朝上）
+      // ---- 明牌（朝上） ----
       const faceEl = document.getElementById(`face-${pid}`);
       faceEl.innerHTML = '';
       for (let i = 0; i < 10; i++) {
-        if (i < p.face.length) {
-          faceEl.appendChild(makeCardEl(p.face[i]));
+        if (p.table[i].face) {
+          const canSelect = playableSet && playableSet.has(`face-${i}`);
+          const opts = canSelect ? { selectable: true } : {};
+          const el = makeCardEl(p.table[i].face, opts);
+
+          if (canSelect) {
+            const isSelected = state.selectedSource &&
+                               state.selectedSource.type === 'face' &&
+                               state.selectedSource.index === i;
+            if (isSelected) el.classList.add('selected');
+
+            const faceIdx = i; // 闭包
+            el.addEventListener('click', () => {
+              if (state.phase !== 'select') return;
+              if (state.selectedSource &&
+                  state.selectedSource.type === 'face' &&
+                  state.selectedSource.index === faceIdx) {
+                state.selectedSource = null;
+              } else {
+                state.selectedSource = { type: 'face', index: faceIdx };
+              }
+              render();
+            });
+          }
+
+          faceEl.appendChild(el);
         } else {
           faceEl.appendChild(makeEmptyEl());
         }
       }
 
-      // 手牌
+      // ---- 手牌 ----
       const handEl = document.getElementById(`hand-${pid}`);
       handEl.innerHTML = '';
       if (pid === 'p1') {
-        // 玩家1手牌可点击
         p.hand.forEach((card, idx) => {
-          const el = makeCardEl(card, { selectable: true });
-          if (state.selectedCard === idx) el.classList.add('selected');
-          el.addEventListener('click', () => {
-            if (state.phase !== 'select') return;
-            state.selectedCard = (state.selectedCard === idx) ? null : idx;
-            render();
-          });
+          const canSelect = playableSet && playableSet.has(`hand-${idx}`);
+          const opts = canSelect ? { selectable: true } : {};
+          const el = makeCardEl(card, opts);
+
+          if (canSelect) {
+            const isSelected = state.selectedSource &&
+                               state.selectedSource.type === 'hand' &&
+                               state.selectedSource.index === idx;
+            if (isSelected) el.classList.add('selected');
+
+            el.addEventListener('click', () => {
+              if (state.phase !== 'select') return;
+              if (state.selectedSource &&
+                  state.selectedSource.type === 'hand' &&
+                  state.selectedSource.index === idx) {
+                state.selectedSource = null;
+              } else {
+                state.selectedSource = { type: 'hand', index: idx };
+              }
+              render();
+            });
+          }
+
           handEl.appendChild(el);
         });
       } else {
-        // 玩家2手牌朝下
-        p.hand.forEach(card => {
-          handEl.appendChild(makeCardEl(card, { faceDown: true }));
+        // 玩家2 手牌朝下
+        p.hand.forEach(() => {
+          handEl.appendChild(makeCardEl(null, { faceDown: true }));
         });
       }
 
-      // 先手标识
+      // ---- 先手标识 ----
       const badge = document.getElementById(`badge-${pid}`);
       if (state.phase === 'select') {
         badge.style.display = (state.firstPlayer === (pid === 'p1' ? 1 : 2)) ? '' : 'none';
@@ -496,10 +834,14 @@
         badge.style.display = 'none';
       }
 
-      // 信息行
+      // ---- 信息行 ----
       const infoEl = document.getElementById(`info-${pid}`);
+      const handCount = p.hand.length;
+      const faceCount = p.table.filter(s => s.face).length;
+      const downCount = p.table.filter(s => s.down).length;
+      const score = pid === 'p1' ? state.scoreP1 : state.scoreP2;
       infoEl.textContent =
-        `手牌: ${p.hand.length}张  |  明牌: ${p.face.length}张  |  底牌: ${p.down.length}张`;
+        `手牌: ${handCount}张 | 明牌: ${faceCount}张 | 底牌: ${downCount}张 | 得分: ${score}分`;
     }
 
     // ------ 渲染出牌区 ------
@@ -508,16 +850,28 @@
       const p2El = document.getElementById('played-p2');
       const resultEl = document.getElementById('result-banner');
 
-      p1El.innerHTML = state.playedP1 ? makeCardEl(state.playedP1).outerHTML : makeEmptyEl().outerHTML;
-      p2El.innerHTML = state.playedP2 ? makeCardEl(state.playedP2).outerHTML : makeEmptyEl().outerHTML;
+      p1El.innerHTML = state.playedP1
+        ? makeCardEl(state.playedP1).outerHTML
+        : makeEmptyEl().outerHTML;
+      p2El.innerHTML = state.playedP2
+        ? makeCardEl(state.playedP2).outerHTML
+        : makeEmptyEl().outerHTML;
 
       if (state.phase === 'reveal' && state.roundResult) {
-        const msgs = { p1: '🎉 玩家1 赢得本回合！', p2: '🤖 玩家2 赢得本回合！', tie: '🤝 平局！先手权不变。' };
+        const msgs = {
+          p1: `🎉 玩家1 赢得本回合！(+${state.roundScore}分)`,
+          p2: `🤖 玩家2 赢得本回合！(+${state.roundScore}分)`,
+          tie: '🤝 平局！先手权不变。'
+        };
         resultEl.textContent = msgs[state.roundResult];
       } else if (state.phase === 'gameover') {
-        const winner = checkGameOver();
-        const msgs = { p1: '🏆 玩家1 获胜！', p2: '🤖 玩家2 获胜！', draw: '🤝 双方平局！' };
-        resultEl.textContent = msgs[winner] || '游戏结束';
+        if (state.scoreP1 > state.scoreP2) {
+          resultEl.textContent = `🏆 玩家1 获胜！(${state.scoreP1} vs ${state.scoreP2})`;
+        } else if (state.scoreP2 > state.scoreP1) {
+          resultEl.textContent = `🤖 玩家2 获胜！(${state.scoreP2} vs ${state.scoreP1})`;
+        } else {
+          resultEl.textContent = `🤝 平局！(${state.scoreP1} vs ${state.scoreP2})`;
+        }
       } else {
         resultEl.textContent = '——';
       }
@@ -526,15 +880,21 @@
     // ------ 渲染状态栏 ------
     function renderStatus() {
       const el = document.getElementById('status-bar');
+
       if (state.phase === 'gameover') {
-        el.textContent = '游戏结束！点击「重新开始」再来一局。';
+        el.textContent = `游戏结束！玩家1: ${state.scoreP1}分 | 玩家2: ${state.scoreP2}分 | 点击「重新开始」再来一局。`;
         return;
       }
+
       const first = state.firstPlayer === 1 ? '玩家1（你）' : '玩家2（AI）';
+
       if (state.phase === 'select') {
-        el.textContent = `第 ${state.round} 回合 | 先手：${first} | 请从手牌中选一张牌，然后点击「出牌」`;
+        const hint = state.firstPlayer === 2
+          ? '请跟牌（需跟同花色，若无则任意出）'
+          : '请从手牌或明牌中选一张出牌';
+        el.textContent = `第 ${state.round}/${TOTAL_ROUNDS} 回合 | 先手：${first} | ${hint}`;
       } else {
-        el.textContent = `第 ${state.round - 1} 回合结束 | 点击「下一回合」继续`;
+        el.textContent = `第 ${state.round}/${TOTAL_ROUNDS} 回合结束 | 本轮分值: ${state.roundScore} | 点击「下一回合」继续`;
       }
     }
 
@@ -546,7 +906,7 @@
       if (state.phase === 'select') {
         btnPlay.style.display = '';
         btnNext.style.display = 'none';
-        btnPlay.disabled = (state.selectedCard === null || state.p1.hand.length === 0);
+        btnPlay.disabled = !state.selectedSource;
       } else if (state.phase === 'reveal') {
         btnPlay.style.display = 'none';
         btnNext.style.display = '';
@@ -557,7 +917,7 @@
     }
 
     // =====================================================================
-    // 辅助：创建牌元素
+    // 辅助：创建牌 DOM 元素
     // =====================================================================
     function makeCardEl(card, opts = {}) {
       const el = document.createElement('div');
@@ -568,18 +928,20 @@
         return el;
       }
 
+      if (!card) return el;
+
       // 颜色类
-      if (card.color === 'joker-big')    el.classList.add('joker-big');
+      if (card.color === 'joker-big')        el.classList.add('joker-big');
       else if (card.color === 'joker-small') el.classList.add('joker-small');
-      else if (card.color === 'red')  el.classList.add('red');
-      else                             el.classList.add('black');
+      else if (card.color === 'red')         el.classList.add('red');
+      else                                   el.classList.add('black');
 
       if (opts.selectable) el.classList.add('selectable');
 
-      if (card.rank === '大王' || card.rank === '小王') {
-        el.innerHTML = `<span class="top">${card.rank === '大王' ? '🃏' : '🃏'}</span>
+      if (isJoker(card)) {
+        el.innerHTML = `<span class="top">🃏</span>
                         <span class="suit" style="font-size:0.7rem">${card.rank}</span>
-                        <span class="bottom">${card.rank === '大王' ? '🃏' : '🃏'}</span>`;
+                        <span class="bottom">🃏</span>`;
       } else {
         el.innerHTML = `<span class="top">${card.rank}</span>
                         <span class="suit">${card.suit}</span>
@@ -606,21 +968,7 @@
     });
 
     document.getElementById('btn-next').addEventListener('click', () => {
-      if (state.phase !== 'reveal') return;
-
-      // 清空出牌区
-      state.playedP1 = null;
-      state.playedP2 = null;
-      state.roundResult = null;
-
-      // 检查游戏结束
-      const over = checkGameOver();
-      if (over) {
-        state.phase = 'gameover';
-      } else {
-        state.phase = 'select';
-      }
-      render();
+      nextRound();
     });
 
     document.getElementById('btn-restart').addEventListener('click', () => {
