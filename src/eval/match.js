@@ -10,8 +10,8 @@ import { getLegalMoves } from '../game/rules.js';
  * Run a single AI-vs-AI match.
  * Pure simulation — no DOM, no user interaction.
  *
- * @param {'easy'|'normal'} strat1 - AI strategy for player 1
- * @param {'easy'|'normal'} strat2 - AI strategy for player 2
+ * @param {'V1'|'V2'} strat1 - AI strategy for player 1
+ * @param {'V1'|'V2'} strat2 - AI strategy for player 2
  * @returns {{ winner: number|null, score1: number, score2: number,
  *            rounds: number, p1Wins: number, p2Wins: number, ties: number }}
  */

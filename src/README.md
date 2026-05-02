@@ -8,8 +8,10 @@ src/
     rules.js       纯规则：合法走法、比大小、天龙人判定
     state.js       纯状态管理：创建、克隆、走法、结算、推进
   ai/
-    easyBot.js     简单策略（原 basic_v1）：抢分优先
-    normalBot.js   普通策略（原 improved）：桌面优先+计牌+残局激进
+    easyBot.js     V1 策略：抢分优先
+    normalBot.js   V2 策略：桌面优先+计牌+残局激进
+    V1.md          V1 策略文档
+    V2.md          V2 策略文档
     bot.js         Bot 工厂：按策略名分发
   eval/
     match.js       单局模拟

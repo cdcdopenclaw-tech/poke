@@ -6,14 +6,14 @@ import { chooseCard as easyChoose } from './easyBot.js';
 import { chooseCard as normalChoose } from './normalBot.js';
 
 const BOT_STRATEGIES = {
-  easy: easyChoose,
-  normal: normalChoose,
+  V1: easyChoose,
+  V2: normalChoose,
 };
 
 /**
  * Factory: get a bot move for the given strategy.
  *
- * @param {'easy'|'normal'} strategyName
+ * @param {'V1'|'V2'} strategyName
  * @param {object} state - Full game state
  * @param {'p1'|'p2'} playerId - Which player this bot controls
  * @param {object|null} leadCard - Card that was led, or null if bot is leading

@@ -6,7 +6,7 @@ import { runMatch } from './match.js';
 
 /**
  * Strategy pair: { p1: string, p2: string }
- * e.g. { p1: 'easy', p2: 'normal' }
+ * e.g. { p1: 'V1', p2: 'V2' }
  */
 
 /**
@@ -14,7 +14,7 @@ import { runMatch } from './match.js';
  *
  * @param {Array<{ label: string, p1: string, p2: string }>} stratsPairs
  *   Each entry has a label and the two strategies to use.
- *   Example: [{ label: 'Easy vs Normal', p1: 'easy', p2: 'normal' }]
+ *   Example: [{ label: 'V1 vs V2', p1: 'V1', p2: 'V2' }]
  * @param {number} games - Number of matches to run per pair
  * @returns {Array<object>} Array of stats objects per pair
  */

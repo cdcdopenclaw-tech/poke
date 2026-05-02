@@ -20,10 +20,10 @@ import { compareCards, determineDragonSuit } from './rules.js';
  * Create a fresh game state.
  * Deals cards, determines dragon suit, sets round 1.
  *
- * @param {{ p1: string, p2: string }} [strategies] - AI strategies ('easy'|'normal')
+ * @param {{ p1: string, p2: string }} [strategies] - AI strategies ('V1'|'V2')
  * @returns {object} Complete game state
  */
-function createState(strategies = { p1: 'easy', p2: 'normal' }) {
+function createState(strategies = { p1: 'V1', p2: 'V2' }) {
   const deck = shuffleDeck(createDeck());
   const deal = dealCards(deck);
   const dragonSuit = determineDragonSuit(deal, 1);
