@@ -250,7 +250,9 @@ function setStatus(msg) {
 // ── Game Logic ───────────────────────────────────────────────────
 
 function onCardClick(move) {
-  if (state.phase !== 'select' || state.firstPlayer !== 1) return;
+  // P1 能选牌的条件：phase='select' 且（P1 先手 或 AI 已出牌等待回应）
+  if (state.phase !== 'select') return;
+  if (state.firstPlayer !== 1 && state.playedP2 === null) return;
   const isSel = state.selectedSource &&
     state.selectedSource.type === move.type &&
     state.selectedSource.index === move.index;
@@ -302,7 +304,7 @@ function nextRound() {
     const aiMove = getBotMove(state.strategies.p2, state, 'p2', null);
     if (aiMove) {
       state = applyMove(state, 'p2', aiMove);
-      // P1 turn remains - wait for user click
+      renderAll();  // 显示 AI 出的牌，玩家才能决策跟牌
     }
   }
 }
