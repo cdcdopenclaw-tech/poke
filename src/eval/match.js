@@ -25,14 +25,16 @@ function runMatch(strat1, strat2) {
   while (!isTerminal(ns)) {
     if (ns.phase === 'select') {
       // Player 1 plays (AI)
-      const leadCard = ns.firstPlayer === 1 ? null : ns.playedP1;
-      const botMoveP1 = getBotMove(ns.strategies.p1, ns, 'p1', leadCard);
+      // P1 leads if firstPlayer=1, otherwise responds to P2's card
+      const leadCardP1 = ns.firstPlayer === 1 ? null : ns.playedP2;
+      const botMoveP1 = getBotMove(ns.strategies.p1, ns, 'p1', leadCardP1);
       if (botMoveP1) {
         ns = applyMove(ns, 'p1', botMoveP1);
       }
 
       // Player 2 plays (AI)
-      const leadCardP2 = ns.firstPlayer === 2 ? null : ns.playedP2;
+      // P2 leads if firstPlayer=2, otherwise responds to P1's card
+      const leadCardP2 = ns.firstPlayer === 2 ? null : ns.playedP1;
       const botMoveP2 = getBotMove(ns.strategies.p2, ns, 'p2', leadCardP2);
       if (botMoveP2) {
         ns = applyMove(ns, 'p2', botMoveP2);
