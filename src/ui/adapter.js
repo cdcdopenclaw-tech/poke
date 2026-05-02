@@ -5,10 +5,10 @@
 import {
   createState, cloneState, applyMove, resolveRound,
   advanceRound, isTerminal, getWinner,
-} from '../game/state.js';
-import { getLegalMoves } from '../game/rules.js';
-import { getCardScore, isJoker, getEffectiveSuit, getCardPower, cardToLabel } from '../game/card.js';
-import { getBotMove } from '../ai/bot.js';
+} from './game/state.js';
+import { getLegalMoves } from './game/rules.js';
+import { getCardScore, isJoker, getEffectiveSuit, getCardPower, cardToLabel } from './game/card.js';
+import { getBotMove } from './ai/bot.js';
 
 // ── State ────────────────────────────────────────────────────────
 let state = null;
