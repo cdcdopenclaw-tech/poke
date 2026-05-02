@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>扑克牌对战游戏 v2026.5.2.0</title>
+  <title>扑克牌对战游戏 v2026.5.2.1</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -116,7 +116,9 @@
       transition: transform 0.15s, box-shadow 0.15s; flex-shrink: 0;
     }
     .card.red { color: #c0392b; }
+    .card.pink { color: #d63384; }
     .card.black { color: #1a1a1a; }
+    .card.dark { color: #1a5b3a; }
     .card.joker-big { color: #c0392b; background: linear-gradient(135deg,#fff 60%,#ffecd2); }
     .card.joker-small { color: #1a1a1a; background: linear-gradient(135deg,#fff 60%,#d5e8d4); }
 
@@ -323,7 +325,9 @@
     .history-row .hr-card.joker-big { color: #c0392b; }
     .history-row .hr-card.joker-small { color: #1a1a1a; }
     .history-row .hr-card.red { color: #c0392b; }
+    .history-row .hr-card.pink { color: #d63384; }
     .history-row .hr-card.black { color: #aaa; }
+    .history-row .hr-card.dark { color: #1a5b3a; }
     .history-row .hr-win  { color: #f1c40f; font-weight: bold; min-width: 50px; }
     .history-row .hr-lose { color: #e74c3c; font-weight: bold; min-width: 50px; }
     .history-row .hr-tie  { color: #888; min-width: 50px; }
@@ -441,7 +445,7 @@
   <script>
     const VERSION = '2026.5.2.0';
     const SUITS = ['♠','♥','♦','♣'];
-    const SUIT_COLOR = { '♠':'black', '♣':'black', '♥':'red', '♦':'red' };
+    const SUIT_COLOR = { '♠':'black', '♣':'dark', '♥':'pink', '♦':'red' };
     const TOTAL_ROUNDS = 27;
     const RANK_ORDER = ['2','3','4','5','6','7','8','9','10','J','Q','K','A','小王','大王'];
 
@@ -923,6 +927,8 @@
       if (card.color === 'joker-big') el.classList.add('joker-big');
       else if (card.color === 'joker-small') el.classList.add('joker-small');
       else if (card.color === 'red') el.classList.add('red');
+      else if (card.color === 'pink') el.classList.add('pink');
+      else if (card.color === 'dark') el.classList.add('dark');
       else el.classList.add('black');
 
       if (opts.sel) el.classList.add('selectable');
