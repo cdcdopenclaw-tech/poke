@@ -13,6 +13,7 @@ import { getBotMove } from './ai/bot.js';
 // ── State ────────────────────────────────────────────────────────
 let state = null;
 let autoAdvanceTimer = null;
+let gameRecords = []; // { gameNum, winner, p1Score, p2Score, points }
 
 // ── Init ─────────────────────────────────────────────────────────
 function initGame() {
@@ -41,6 +42,7 @@ function renderAll() {
   renderStatus();
   renderButtons();
   renderHistory();
+  renderGameRecords();
   document.querySelector('h1 .ver').textContent = 'v2026.5.3.2';
 }
 
@@ -155,6 +157,13 @@ function renderPlayArea() {
     if (state.p1.score > state.p2.score) re.textContent = `🏆 你赢了！ ${state.p1.score}:${state.p2.score}`;
     else if (state.p2.score > state.p1.score) re.textContent = `🤖 AI赢了！ ${state.p1.score}:${state.p2.score}`;
     else re.textContent = `🤝 平局！ ${state.p1.score}:${state.p2.score}`;
+
+    // 记录本局结果
+    if (!state._recorded) {
+      state._recorded = true;
+      recordGameResult();
+      renderGameRecords();
+    }
   } else re.textContent = '——';
 }
 
@@ -179,6 +188,48 @@ function renderButtons() {
     bp.style.display = '';
     bp.disabled = !state.selectedSource;
   } else bp.style.display = 'none';
+}
+
+function recordGameResult() {
+  const p1 = state.p1.score;
+  const p2 = state.p2.score;
+  let winner, points;
+  if (p1 > p2) { winner = 'p1'; points = p1 - p2; }
+  else if (p2 > p1) { winner = 'p2'; points = p2 - p1; }
+  else { winner = 'tie'; points = 0; }
+  gameRecords.push({ gameNum: gameRecords.length + 1, winner, p1Score: p1, p2Score: p2, points });
+}
+
+function renderGameRecords() {
+  const el = document.getElementById('game-records-panel');
+  if (gameRecords.length === 0) {
+    el.innerHTML = '<h3>📊 游戏记录</h3><div style="color:#888;font-size:0.72rem">暂无记录</div>';
+    return;
+  }
+
+  const p1Wins = gameRecords.filter(r => r.winner === 'p1').length;
+  const p2Wins = gameRecords.filter(r => r.winner === 'p2').length;
+  const p1Total = gameRecords.reduce((s, r) => s + r.p1Score, 0);
+  const p2Total = gameRecords.reduce((s, r) => s + r.p2Score, 0);
+  const netScore = p1Total - p2Total;
+
+  let summary;
+  if (p1Wins > p2Wins) {
+    summary = `你的游戏记录是 ${p1Wins}:${p2Wins}，累计赢得 ${Math.abs(netScore)} 分`;
+  } else if (p2Wins > p1Wins) {
+    summary = `你的游戏记录是 ${p1Wins}:${p2Wins}，累计落后 ${Math.abs(netScore)} 分`;
+  } else {
+    summary = `你的游戏记录是 ${p1Wins}:${p2Wins}，累计平局`;
+  }
+
+  let html = `<h3>📊 游戏记录</h3><div class="gr-summary">${summary}</div>`;
+  for (const r of gameRecords) {
+    const wLabel = r.winner === 'p1' ? '玩家1' : r.winner === 'p2' ? '玩家2' : '平局';
+    const wClass = r.winner === 'p1' ? 'gr-win' : r.winner === 'p2' ? 'gr-lose' : 'gr-tie';
+    const ptsStr = r.points > 0 ? `赢${r.points}分` : '平局';
+    html += `<div class="gr-row"><span class="gr-num">第${r.gameNum}局</span> <span class="${wClass}">${wLabel}</span> <span class="gr-pts">${ptsStr}</span></div>`;
+  }
+  el.innerHTML = html;
 }
 
 function renderHistory() {
