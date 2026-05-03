@@ -41,7 +41,7 @@ function renderAll() {
   renderStatus();
   renderButtons();
   renderHistory();
-  document.querySelector('h1 .ver').textContent = 'v2026.5.3.0';
+  document.querySelector('h1 .ver').textContent = 'v2026.5.3.1';
 }
 
 function renderDragonInfo() {
