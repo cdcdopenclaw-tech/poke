@@ -228,9 +228,9 @@ function renderGameRecords() {
 
   const p1Wins = gameRecords.filter(r => r.winner === 'p1').length;
   const p2Wins = gameRecords.filter(r => r.winner === 'p2').length;
-  const p1Total = gameRecords.reduce((s, r) => s + r.p1Score, 0);
-  const p2Total = gameRecords.reduce((s, r) => s + r.p2Score, 0);
-  const netScore = p1Total - p2Total;
+  const p1NetPoints = gameRecords.filter(r => r.winner === 'p1').reduce((s, r) => s + r.points, 0);
+  const p2NetPoints = gameRecords.filter(r => r.winner === 'p2').reduce((s, r) => s + r.points, 0);
+  const netScore = p1NetPoints - p2NetPoints;
 
   let summary;
   if (p1Wins > p2Wins) {
