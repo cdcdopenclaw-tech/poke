@@ -63,7 +63,7 @@ function chooseLowestScoreCard(cards, dragonSuit) {
  * @param {object|null} leadCard - The card that was led, or null if bot is leading
  * @returns {{ type: 'hand'|'face', index: number }} The chosen move, or null if none
  */
-function chooseCard(state, playerId, leadCard) {
+function easyChoose(state, playerId, leadCard) {
   const player = state[playerId];
   const dragonSuit = state.dragonSuit;
   const playable = getLegalMoves(player, leadCard, dragonSuit);
@@ -108,4 +108,4 @@ function chooseCard(state, playerId, leadCard) {
   return chooseLowestPower(nonScore.length > 0 ? nonScore : playable, dragonSuit);
 }
 
-export { chooseCard };
+export { easyChoose };

@@ -329,7 +329,7 @@ function searchBestMove(state, botId, depth, startTime) {
  * @param {object|null} leadCard - 先手出的牌（跟牌时）
  * @returns {{ type: 'hand'|'face', index: number }|null}
  */
-function chooseCard(state, playerId, leadCard) {
+function V3Choose(state, playerId, leadCard) {
   const startTime = Date.now();
 
   // 如果 bot 不是当前行动方，不决策
@@ -385,4 +385,4 @@ function chooseCard(state, playerId, leadCard) {
   return bestEntry.move;
 }
 
-export { chooseCard, V3_CONFIG };
+export { V3Choose, V3_CONFIG };

@@ -190,7 +190,7 @@ function preferTableOverHand(a, b) {
  * @param {object|null} leadCard
  * @returns {{ type: 'hand'|'face', index: number }|null}
  */
-function chooseCard(state, playerId, leadCard) {
+function normalChoose(state, playerId, leadCard) {
   const player = state[playerId];
   const dragonSuit = state.dragonSuit;
   const opponent = playerId === 'p1' ? state.p2 : state.p1;
@@ -400,4 +400,4 @@ function applyTablePreference(chosen, alternatives, dragonSuit) {
   return chosen;
 }
 
-export { chooseCard };
+export { normalChoose };
