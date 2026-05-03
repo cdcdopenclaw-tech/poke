@@ -209,8 +209,8 @@ function recordGameResult() {
   const p1 = state.p1.score;
   const p2 = state.p2.score;
   let winner, points;
-  if (p1 > p2) { winner = 'p1'; points = p1 - p2; }
-  else if (p2 > p1) { winner = 'p2'; points = p2 - p1; }
+  if (p1 > p2) { winner = 'p1'; points = p1 - 50; }
+  else if (p2 > p1) { winner = 'p2'; points = p2 - 50; }
   else { winner = 'tie'; points = 0; }
   gameRecords.push({ gameNum: gameRecords.length + 1, winner, p1Score: p1, p2Score: p2, points });
   // 下一局先手为获胜者，平局不交换
