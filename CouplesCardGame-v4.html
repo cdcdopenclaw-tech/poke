@@ -368,7 +368,7 @@
   <script>
 // ════════════════════════════════════════════════════
 // 扑克牌对战 — 独立捆绑包
-// Built: 2026-05-03 09:44:57
+// Built: 2026-05-03 09:55:45
 // ════════════════════════════════════════════════════
 
 // ── src/game/card.js ──────────────────────────────────────
@@ -2373,7 +2373,7 @@ function renderAll() {
   renderButtons();
   renderHistory();
   renderGameRecords();
-  document.querySelector('h1 .ver').textContent = 'v2026.5.3.2';
+  document.querySelector('h1 .ver').textContent = 'v2026.5.3.3';
 }
 
 function renderDragonInfo() {
@@ -2688,6 +2688,13 @@ function playTurn() {
     autoAdvanceTimer = setTimeout(() => {
       autoAdvanceTimer = null;
       nextRound();
+    }, 3000);
+  } else {
+    // 最后一轮结束，推进到 gameover 状态
+    autoAdvanceTimer = setTimeout(() => {
+      autoAdvanceTimer = null;
+      state = advanceRound(state);
+      renderAll();
     }, 3000);
   }
 }
